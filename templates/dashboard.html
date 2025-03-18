@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Healthcare Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid black; padding: 8px; text-align: left; }
+    </style>
+</head>
+<body>
+    <h1>Healthcare Dashboard</h1>
+    <div id="graph"></div>
+    
+    <h2>All Reimbursements</h2>
+    <table>
+        <tr>
+            {% for header in table_data[0].keys() %}
+                <th>{{ header }}</th>
+            {% endfor %}
+        </tr>
+        {% for row in table_data %}
+            <tr>
+                {% for value in row.values() %}
+                    <td>{{ value }}</td>
+                {% endfor %}
+            </tr>
+        {% endfor %}
+    </table>
+    
+    <a href="/">Upload Another File</a>
+
+    <script>
+        var graphData = {{ graph_json | safe }};
+        Plotly.newPlot('graph', graphData.data, graphData.layout);
+    </script>
+</body>
+</html>
