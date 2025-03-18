@@ -5,6 +5,7 @@ from datetime import datetime
 import pandas as pd
 import plotly.express as px
 import os
+from PyPDF2 import PdfReader  # Ajout pour lire les PDFs
 
 app = Flask(__name__)
 
@@ -70,9 +71,22 @@ def process_file():
         return jsonify({'error': 'No file uploaded'}), 400
     
     file = request.files['file']
-    content = file.read().decode('utf-8')
+    if file.filename.endswith('.pdf'):
+        # Extraction du texte depuis le PDF
+        pdf_reader = PdfReader(file)
+        content = ''
+        for page in pdf_reader.pages:
+            content += page.extract_text() or ''
+    elif file.filename.endswith('.txt'):
+        # Traitement direct pour les fichiers texte
+        content = file.read().decode('utf-8')
+    else:
+        return jsonify({'error': 'Unsupported file format. Please upload a PDF or TXT file.'}), 400
     
     extracted_data = extract_data(content)
+    if not extracted_data:
+        return jsonify({'error': 'No valid data found in the file.'}), 400
+    
     save_to_db(extracted_data)
     
     return jsonify(extracted_data)
