@@ -3,12 +3,13 @@
 <head>
     <title>Upload Healthcare Document</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <h1>Upload Healthcare Document</h1>
     <form id="uploadForm" enctype="multipart/form-data">
         <input type="file" name="file" id="fileInput" accept=".txt">
-        <input type="submit" value="Analyze">
+        <button type="submit">Analyze</button>
     </form>
     <div id="results"></div>
     <a href="/dashboard">View Dashboard</a>
@@ -26,7 +27,7 @@
                 processData: false,
                 contentType: false,
                 success: function(data) {
-                    let html = '<h2>Extracted Data:</h2><table border="1"><tr>';
+                    let html = '<h2>Extracted Data:</h2><table><tr>';
                     let headers = Object.keys(data[0]);
                     headers.forEach(header => html += `<th>${header}</th>`);
                     html += '</tr>';
