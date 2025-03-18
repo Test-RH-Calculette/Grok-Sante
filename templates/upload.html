@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Upload Healthcare Document</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<body>
+    <h1>Upload Healthcare Document</h1>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" name="file" id="fileInput" accept=".txt">
+        <input type="submit" value="Analyze">
+    </form>
+    <div id="results"></div>
+    <a href="/dashboard">View Dashboard</a>
+
+    <script>
+    $(document).ready(function() {
+        $('#uploadForm').submit(function(e) {
+            e.preventDefault();
+            var formData = new FormData(this);
+            
+            $.ajax({
+                url: '/upload',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(data) {
+                    let html = '<h2>Extracted Data:</h2><table border="1"><tr>';
+                    let headers = Object.keys(data[0]);
+                    headers.forEach(header => html += `<th>${header}</th>`);
+                    html += '</tr>';
+                    
+                    data.forEach(row => {
+                        html += '<tr>';
+                        headers.forEach(header => html += `<td>${row[header]}</td>`);
+                        html += '</tr>';
+                    });
+                    html += '</table>';
+                    $('#results').html(html);
+                },
+                error: function(xhr, status, error) {
+                    $('#results').html('<p>Error: ' + xhr.responseJSON.error + '</p>');
+                }
+            });
+        });
+    });
+    </script>
+</body>
+</html>
