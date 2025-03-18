@@ -5,7 +5,7 @@ from datetime import datetime
 import pandas as pd
 import plotly.express as px
 import os
-from PyPDF2 import PdfReader  # Ajout pour lire les PDFs
+from PyPDF2 import PdfReader
 
 app = Flask(__name__)
 
@@ -26,15 +26,26 @@ def init_db():
     conn.commit()
     conn.close()
 
+# Pré-traitement du texte
+def preprocess_text(content):
+    # Supprimer les caractères indésirables et normaliser les espaces
+    content = content.replace('\n', ' ').replace('\r', ' ')
+    content = re.sub(r'\s+', ' ', content)  # Remplacer plusieurs espaces par un seul
+    return content
+
 # Fonction d'extraction des données
 def extract_data(content):
-    pattern = r'(\d{2}/\d{2}/\d{4})\s+([A-Z\s\.]+)\s+\((.+?)\)\s+(\d+,\d+)\s+(\d+,\d+)\s+(\d+%)\s+(\d+,\d+)\s+(\d+%)'
+    # Adapter la regex pour gérer les $ autour des dates
+    pattern = r'\$(\d{2}\s*/\s*\d{2}\s*/\s*\d{4})\$\s+([A-Z\s\.]+)\s+\((.+?)\)\s+(\d+,\d+)\s+(\d+,\d+)\s+\$(\d+%)\$\s+(\d+,\d+)\s+\$(\d+%)\$'
     matches = re.findall(pattern, content)
+    
+    print("Contenu brut analysé :", content[:500])  # Débogage : voir les 500 premiers caractères
+    print("Matches trouvés :", matches)  # Débogage : voir ce que la regex trouve
     
     results = []
     for match in matches:
         care = {
-            'care_date': match[0],
+            'care_date': match[0].replace(' ', ''),  # Supprimer les espaces dans la date
             'care_type': match[1].strip(),
             'care_code': match[2],
             'paid_amount': float(match[3].replace(',', '.')),
@@ -72,17 +83,16 @@ def process_file():
     
     file = request.files['file']
     if file.filename.endswith('.pdf'):
-        # Extraction du texte depuis le PDF
         pdf_reader = PdfReader(file)
         content = ''
         for page in pdf_reader.pages:
             content += page.extract_text() or ''
     elif file.filename.endswith('.txt'):
-        # Traitement direct pour les fichiers texte
         content = file.read().decode('utf-8')
     else:
         return jsonify({'error': 'Unsupported file format. Please upload a PDF or TXT file.'}), 400
     
+    content = preprocess_text(content)
     extracted_data = extract_data(content)
     if not extracted_data:
         return jsonify({'error': 'No valid data found in the file.'}), 400
@@ -97,12 +107,10 @@ def dashboard():
     df = pd.read_sql_query("SELECT * FROM reimbursements", conn)
     conn.close()
     
-    # Préparation des données pour le graphique
     df['care_date'] = pd.to_datetime(df['care_date'], format='%d/%m/%Y')
     monthly_data = df.groupby(df['care_date'].dt.to_period('M'))['paid_amount'].sum().reset_index()
     monthly_data['care_date'] = monthly_data['care_date'].dt.to_timestamp()
     
-    # Création du graphique
     fig = px.line(monthly_data, x='care_date', y='paid_amount', 
                  title='Dépenses mensuelles de soins')
     graph_json = fig.to_json()
